@@ -1,0 +1,37 @@
+{
+    "name": "portfolio",
+    "version": "1.0.0",
+    "description": "",
+    "main": "src/main.ts",
+    "scripts": {
+        "typecheck": "npx tsc --noEmit",
+        "build": "npx webpack",
+        "watch": "npx webpack --watch",
+        "format": "npx prettier src --write src/**/*"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/alexsocha/stock-portfolio.git"
+    },
+    "author": "alexsocha",
+    "homepage": "https://github.com/alexsocha/stock-portfolio#readme",
+    "dependencies": {},
+    "devDependencies": {
+        "@types/google-apps-script": "1.0.12",
+        "@types/lodash": "4.14.149",
+        "gas-webpack-plugin": "1.0.2",
+        "husky": "4.2.5",
+        "lodash": "4.17.15",
+        "prettier": "2.0.4",
+        "pretty-quick": "2.0.1",
+        "ts-loader": "7.0.0",
+        "typescript": "3.8.3",
+        "webpack": "4.42.1",
+        "webpack-cli": "3.3.11"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "npx pretty-quick --staged --pattern \"src/**/*\""
+        }
+    }
+}
