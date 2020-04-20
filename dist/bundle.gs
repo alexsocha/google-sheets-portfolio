@@ -221,7 +221,7 @@ exports.withHistTotal = function (histValues) {
 exports.writeHistAssetValues = function (assets, histValues, sheetName) {
     var sortedDates = utils_1.sortedDateStrs(Object.keys(histValues));
     var dateRows = sortedDates.map(function (d) {
-        return [d].concat(assets.map(function (a) { return histValues[d][a] + ''; }));
+        return [d].concat(assets.map(function (a) { return Number(histValues[d][a]).toFixed(8) + ''; }));
     });
     var headerRow = ['Date'].concat(assets);
     var sheetValues = [headerRow].concat(dateRows);

@@ -49,7 +49,7 @@ export const writeHistAssetValues = (
     const sortedDates = sortedDateStrs(Object.keys(histValues));
 
     const dateRows = sortedDates.map((d) => {
-        return [d].concat(assets.map((a) => histValues[d][a] + ''));
+        return [d].concat(assets.map((a) => Number(histValues[d][a]).toFixed(8) + ''));
     });
 
     const headerRow = ['Date'].concat(assets);
