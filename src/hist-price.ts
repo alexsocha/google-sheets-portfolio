@@ -51,24 +51,26 @@ const writeHistPriceFormulas = (assets: RArray<AssetKey>, settings: Settings) =>
     });
     SpreadsheetApp.flush();
 
-    const sheetValues = sheet.getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2).getValues();
-
     // append current prices at the end of each column
-    assetMods.forEach((assetMod, i) => {
-        const lastRow = sheetValues.findIndex((row) => row[i * 2] === '') - 1;
-        const lastDate = justADate(sheetValues[lastRow][i * 2]);
+    if (settings.endDate.getTime() === justADate(new Date()).getTime()) {
+        const sheetValues = sheet.getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2).getValues();
 
-        if (lastDate.getTime() !== settings.endDate.getTime()) {
-            sheet.getRange(lastRow + 3, i * 2 + 1).setValue(settings.endDate);
-            sheet.getRange(lastRow + 3, i * 2 + 2).setFormula(
-                '=GOOGLEFINANCE(' +
-                    `"${assetMod.code}"` +
-                    // the 'price' attribute must be omitted for currencies in this case
-                    (assetMod.code.startsWith('CURRENCY') ? ')' : ', "price")')
-            );
-        }
-    });
-    SpreadsheetApp.flush();
+        assetMods.forEach((assetMod, i) => {
+            const lastRow = sheetValues.findIndex((row) => row[i * 2] === '') - 1;
+            const lastDate = justADate(sheetValues[lastRow][i * 2]);
+
+            if (lastDate.getTime() !== settings.endDate.getTime()) {
+                sheet.getRange(lastRow + 3, i * 2 + 1).setValue(settings.endDate);
+                sheet.getRange(lastRow + 3, i * 2 + 2).setFormula(
+                    '=GOOGLEFINANCE(' +
+                        `"${assetMod.code}"` +
+                        // the 'price' attribute must be omitted for currencies in this case
+                        (assetMod.code.startsWith('CURRENCY') ? ')' : ', "price")')
+                );
+            }
+        });
+        SpreadsheetApp.flush();
+    }
 };
 
 const readHistPrices = (assets: RArray<AssetKey>, settings: Settings): HistAssetValues => {

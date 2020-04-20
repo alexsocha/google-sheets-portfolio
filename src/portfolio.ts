@@ -26,7 +26,8 @@ const getHistProp: (
     assets: RArray<AssetKey>,
     dates: [Date, Date]
 ) => HistAssetValues = (propFn) => (transactionsByAsset, assets, [startDate, endDate]) => {
-    const dates = getDailyDates(startDate, justADate(new Date()));
+
+    const dates = getDailyDates(startDate, justADate(endDate));
 
     return dictFromArray(dates, (d) => {
         return [

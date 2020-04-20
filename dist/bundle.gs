@@ -255,7 +255,7 @@ var utils_1 = __webpack_require__(0);
 exports.readTransactions = function () {
     var sheet = SpreadsheetApp.getActive().getSheetByName('Transactions');
     var sheetValues = sheet
-        .getRange(2, 1, sheet.getMaxRows(), 5)
+        .getRange(2, 1, sheet.getLastRow() + 1, 5)
         .getValues()
         .filter(function (row) { return row[0] != ''; });
     return sheetValues.map(function (row) { return ({
@@ -504,20 +504,22 @@ var writeHistPriceFormulas = function (assets, settings) {
             ("\"" + settings.interval + "\")"));
     });
     SpreadsheetApp.flush();
-    var sheetValues = sheet.getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2).getValues();
     // append current prices at the end of each column
-    assetMods.forEach(function (assetMod, i) {
-        var lastRow = sheetValues.findIndex(function (row) { return row[i * 2] === ''; }) - 1;
-        var lastDate = utils_1.justADate(sheetValues[lastRow][i * 2]);
-        if (lastDate.getTime() !== settings.endDate.getTime()) {
-            sheet.getRange(lastRow + 3, i * 2 + 1).setValue(settings.endDate);
-            sheet.getRange(lastRow + 3, i * 2 + 2).setFormula('=GOOGLEFINANCE(' +
-                ("\"" + assetMod.code + "\"") +
-                // the 'price' attribute must be omitted for currencies in this case
-                (assetMod.code.startsWith('CURRENCY') ? ')' : ', "price")'));
-        }
-    });
-    SpreadsheetApp.flush();
+    if (settings.endDate.getTime() === utils_1.justADate(new Date()).getTime()) {
+        var sheetValues_1 = sheet.getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2).getValues();
+        assetMods.forEach(function (assetMod, i) {
+            var lastRow = sheetValues_1.findIndex(function (row) { return row[i * 2] === ''; }) - 1;
+            var lastDate = utils_1.justADate(sheetValues_1[lastRow][i * 2]);
+            if (lastDate.getTime() !== settings.endDate.getTime()) {
+                sheet.getRange(lastRow + 3, i * 2 + 1).setValue(settings.endDate);
+                sheet.getRange(lastRow + 3, i * 2 + 2).setFormula('=GOOGLEFINANCE(' +
+                    ("\"" + assetMod.code + "\"") +
+                    // the 'price' attribute must be omitted for currencies in this case
+                    (assetMod.code.startsWith('CURRENCY') ? ')' : ', "price")'));
+            }
+        });
+        SpreadsheetApp.flush();
+    }
 };
 var readHistPrices = function (assets, settings) {
     writeHistPriceFormulas(assets, settings);
@@ -589,7 +591,7 @@ var transaction_1 = __webpack_require__(2);
 var utils_1 = __webpack_require__(0);
 var getHistProp = function (propFn) { return function (transactionsByAsset, assets, _a) {
     var startDate = _a[0], endDate = _a[1];
-    var dates = utils_1.getDailyDates(startDate, utils_1.justADate(new Date()));
+    var dates = utils_1.getDailyDates(startDate, utils_1.justADate(endDate));
     return utils_1.dictFromArray(dates, function (d) {
         return [
             utils_1.getDateStr(d),

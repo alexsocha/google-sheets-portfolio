@@ -12,7 +12,7 @@ export interface Transaction {
 export const readTransactions = (): RArray<Transaction> => {
     const sheet = SpreadsheetApp.getActive().getSheetByName('Transactions')!;
     const sheetValues = sheet
-        .getRange(2, 1, sheet.getMaxRows(), 5)
+        .getRange(2, 1, sheet.getLastRow() + 1, 5)
         .getValues()
         .filter((row) => row[0] != '');
 
