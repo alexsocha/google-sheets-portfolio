@@ -1,4 +1,4 @@
-import { AssetKey } from './asset';
+import { AssetKey, getCurrencyKey } from './asset';
 import { RArray, Dict, justADate } from './utils';
 
 export interface Transaction {
@@ -36,6 +36,26 @@ export const getTransactionsByAsset = (transactions: RArray<Transaction>): Trans
         acc[t.asset].push(t);
         return acc;
     }, {} as TransactionsByAsset);
+};
+
+// create separate transaction for the target currency, e.g sell stock => buy currency
+export const withCurrencyTransactions = (
+    transactions: RArray<Transaction>,
+    currency: string
+): RArray<Transaction> => {
+    const currencyAsset = getCurrencyKey(currency);
+    return transactions.flatMap((t) => {
+        if (t.asset !== currencyAsset) {
+            const currencyTransaction: Transaction = {
+                asset: currencyAsset,
+                action: t.action === 'SELL' ? 'BUY' : 'SELL',
+                date: t.date,
+                quantity: t.unitPrice * t.quantity,
+                unitPrice: 1,
+            };
+            return [t, currencyTransaction];
+        } else return [t];
+    });
 };
 
 export const getAssetQtyAt = (transactions: RArray<Transaction>, date: Date) => {
@@ -80,10 +100,13 @@ export const getAmountInvested = (
 // get a list of assets owned on or after the start date
 export const getRelevantAssets = (
     transactionsByAsset: TransactionsByAsset,
+    currency: string,
     [startDate, endDate]: [Date, Date]
 ): RArray<AssetKey> => {
     return Object.entries(transactionsByAsset)
-        .filter(([_, ts]) => {
+        .filter(([asset, ts]) => {
+            if (asset === getCurrencyKey(currency)) return false;
+
             // check if a transaction was made within the timeframe
             const hasTransaction = ts.some(
                 (t) =>

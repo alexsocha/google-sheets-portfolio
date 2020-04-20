@@ -1,4 +1,4 @@
-import { AssetKey, getCurrencyKey, HistAssetValues } from './asset';
+import { AssetKey, HistAssetValues, getCurrencyKey } from './asset';
 import { Settings } from './settings';
 import {
     getDateStr,
@@ -106,17 +106,17 @@ const readHistPrices = (assets: RArray<AssetKey>, settings: Settings): HistAsset
     );
 };
 
-// read historical prices in the given currency
-export const readStandardHistPrices = (
+// read the historical prices, converted the given currency
+export const readHistPricesInCurrency = (
     assets: RArray<AssetKey>,
     assetCurrencies: Dict<AssetKey, string>,
     settings: Settings
 ): HistAssetValues => {
     const currencies = filterUnique(Object.values(assetCurrencies));
-    // currency assets keys, relative to the target currency
+    // currency conversion asset keys, relative to the target currency
     const currencyKeys = currencies
         .filter((c) => c !== settings.currency)
-        .map((c) => getCurrencyKey(c, settings.currency));
+        .map((c) => getCurrencyKey(c + settings.currency));
 
     const histPrices = readHistPrices(assets.concat(currencyKeys), settings);
 
@@ -126,10 +126,17 @@ export const readStandardHistPrices = (
             if (assetCurrencies[asset] === settings.currency) return [asset, price];
             else {
                 // convert price to target currency, at the given date
-                const currencyKey = getCurrencyKey(assetCurrencies[asset], settings.currency);
+                const currencyKey = getCurrencyKey(assetCurrencies[asset] + settings.currency);
                 const exchangeRate = histPrices[dateStr][currencyKey];
                 return [asset, price * exchangeRate];
             }
         });
+    });
+};
+
+// add historical values for the target currency, which will never change in value relative to itself
+export const withTrivialHistCurrencyPrice = (histPrices: HistAssetValues, currency: string) => {
+    return mapDict(histPrices, (_, assetPrices) => {
+        return { ...assetPrices, [getCurrencyKey(currency)]: 1 };
     });
 };

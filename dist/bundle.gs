@@ -1,4 +1,4 @@
-function loadHistData() {
+function loadData() {
 }
 function onOpen() {
 }
@@ -191,8 +191,8 @@ var __assign = (this && this.__assign) || function () {
 exports.__esModule = true;
 var utils_1 = __webpack_require__(0);
 exports.TOTAL = 'Total';
-exports.getCurrencyKey = function (baseCurrency, targetCurrency) {
-    return "CURRENCY:" + baseCurrency + targetCurrency;
+exports.getCurrencyKey = function (currency) {
+    return 'CURRENCY:' + currency;
 };
 exports.readAssetCurrencies = function (assets) {
     var sheet = utils_1.getOrCreateSheet('Raw Hist Prices');
@@ -250,6 +250,7 @@ var __assign = (this && this.__assign) || function () {
     return __assign.apply(this, arguments);
 };
 exports.__esModule = true;
+var asset_1 = __webpack_require__(1);
 var utils_1 = __webpack_require__(0);
 exports.readTransactions = function () {
     var sheet = SpreadsheetApp.getActive().getSheetByName('Transactions');
@@ -274,6 +275,24 @@ exports.getTransactionsByAsset = function (transactions) {
         acc[t.asset].push(t);
         return acc;
     }, {});
+};
+// create separate transaction for the target currency, e.g sell stock => buy currency
+exports.withCurrencyTransactions = function (transactions, currency) {
+    var currencyAsset = asset_1.getCurrencyKey(currency);
+    return transactions.flatMap(function (t) {
+        if (t.asset !== currencyAsset) {
+            var currencyTransaction = {
+                asset: currencyAsset,
+                action: t.action === 'SELL' ? 'BUY' : 'SELL',
+                date: t.date,
+                quantity: t.unitPrice * t.quantity,
+                unitPrice: 1,
+            };
+            return [t, currencyTransaction];
+        }
+        else
+            return [t];
+    });
 };
 exports.getAssetQtyAt = function (transactions, date) {
     return transactions.reduce(function (acc, t) {
@@ -308,11 +327,13 @@ exports.getAmountInvested = function (transactions, _a) {
     }, [0, 0])[0];
 };
 // get a list of assets owned on or after the start date
-exports.getRelevantAssets = function (transactionsByAsset, _a) {
+exports.getRelevantAssets = function (transactionsByAsset, currency, _a) {
     var startDate = _a[0], endDate = _a[1];
     return Object.entries(transactionsByAsset)
         .filter(function (_a) {
-        var _ = _a[0], ts = _a[1];
+        var asset = _a[0], ts = _a[1];
+        if (asset === asset_1.getCurrencyKey(currency))
+            return false;
         // check if a transaction was made within the timeframe
         var hasTransaction = ts.some(function (t) {
             return t.date.getTime() >= startDate.getTime() && t.date.getTime() <= endDate.getTime();
@@ -341,23 +362,42 @@ var settings_1 = __webpack_require__(7);
 var utils_1 = __webpack_require__(0);
 var transactionsCache = null;
 var settingsCache = null;
-var getTransactions = function () { return transactionsCache || transaction_1.readTransactions(); };
-var getSettings = function () { return settingsCache || settings_1.readSettings(); };
-var loadHistData = function () {
-    // get all buy/sell transactions
-    var transactions = getTransactions();
-    var transactionsByAsset = transaction_1.getTransactionsByAsset(transactions);
+var getSettings = function () {
+    if (settingsCache)
+        return settingsCache;
+    var settings = settings_1.readSettings();
+    settingsCache = settings;
+    return settings;
+};
+var getTransactions = function (settings) {
+    if (transactionsCache)
+        return transactionsCache;
+    var transactions = transaction_1.withCurrencyTransactions(transaction_1.readTransactions(), settings.currency);
+    transactionsCache = transactions;
+    return transactions;
+};
+var loadData = function () {
+    // clear cache
+    settingsCache = null;
+    transactionsCache = null;
     // get settings
     var settings = getSettings();
     var _a = [settings.startDate, settings.endDate], startDate = _a[0], endDate = _a[1];
-    var assets = utils_1.sorted(transaction_1.getRelevantAssets(transactionsByAsset, [startDate, endDate]));
+    // get all buy/sell transactions
+    var transactions = getTransactions(settings);
+    var transactionsByAsset = transaction_1.getTransactionsByAsset(transactions);
+    // get the assets owned in the timeframe
+    var dynamicAssets = utils_1.sorted(transaction_1.getRelevantAssets(transactionsByAsset, settings.currency, [startDate, endDate]));
+    // add the currency as an asset
+    var assets = [asset_1.getCurrencyKey(settings.currency)].concat(dynamicAssets);
     // get historical asset prices
-    var assetCurrencies = asset_1.readAssetCurrencies(assets);
-    var histPrices = hist_price_1.readStandardHistPrices(assets, assetCurrencies, settings);
+    var assetCurrencies = asset_1.readAssetCurrencies(dynamicAssets);
+    var dynamicHistPrices = hist_price_1.readHistPricesInCurrency(dynamicAssets, assetCurrencies, settings);
+    var histPrices = hist_price_1.withTrivialHistCurrencyPrice(dynamicHistPrices, settings.currency);
     // find the portfolio worth before the start date
     var initWorth = portfolio_1.getInitWorth(transactionsByAsset, histPrices[utils_1.getDateStr(startDate)], startDate);
     // calculate historical portfolio properties
-    var histAssetQty = portfolio_1.getHistAssetQty(transactionsByAsset, assets, [startDate, endDate]);
+    var histQty = portfolio_1.getHistQty(transactionsByAsset, assets, [startDate, endDate]);
     var histTransactionProfit = portfolio_1.getHistTransactionProfit(transactionsByAsset, assets, [
         startDate,
         endDate,
@@ -366,7 +406,7 @@ var loadHistData = function () {
         startDate,
         endDate,
     ]);
-    var histWorth = portfolio_1.getHistWorth(histPrices, histAssetQty);
+    var histWorth = portfolio_1.getHistWorth(histPrices, histQty);
     var histWorthWithTotal = asset_1.withHistTotal(histWorth);
     var histProfit = portfolio_1.getHistProfit(initWorth, histWorth, histTransactionProfit);
     var histProfitWithTotal = asset_1.withHistTotal(histProfit);
@@ -380,13 +420,13 @@ var loadHistData = function () {
 var onOpen = function () {
     var ui = SpreadsheetApp.getUi();
     SpreadsheetApp.getActive().removeMenu('Portfolio');
-    ui.createMenu('Portfolio').addItem('Load Data', 'loadHistData').addToUi();
+    ui.createMenu('Portfolio').addItem('Load data', 'loadData').addToUi();
 };
-global.loadHistData = loadHistData;
+global.loadData = loadData;
 global.onOpen = onOpen;
 // utilities
 global.getAssetQtyAt = function (asset, date) {
-    var transactions = getTransactions();
+    var transactions = getTransactions(getSettings());
     return transaction_1.getAssetQtyAt(transactions.filter(function (t) { return t.asset === asset; }), date);
 };
 
@@ -507,13 +547,13 @@ var readHistPrices = function (assets, settings) {
         }, assetAcc);
     }, utils_1.dictFromArray(dates, function (d) { return [utils_1.getDateStr(d), {}]; }));
 };
-// read historical prices in the given currency
-exports.readStandardHistPrices = function (assets, assetCurrencies, settings) {
+// read the historical prices, converted the given currency
+exports.readHistPricesInCurrency = function (assets, assetCurrencies, settings) {
     var currencies = utils_1.filterUnique(Object.values(assetCurrencies));
-    // currency assets keys, relative to the target currency
+    // currency conversion asset keys, relative to the target currency
     var currencyKeys = currencies
         .filter(function (c) { return c !== settings.currency; })
-        .map(function (c) { return asset_1.getCurrencyKey(c, settings.currency); });
+        .map(function (c) { return asset_1.getCurrencyKey(c + settings.currency); });
     var histPrices = readHistPrices(assets.concat(currencyKeys), settings);
     return utils_1.mapDict(histPrices, function (dateStr, assetPrices) {
         return utils_1.dictFromArray(assets, function (asset) {
@@ -522,11 +562,18 @@ exports.readStandardHistPrices = function (assets, assetCurrencies, settings) {
                 return [asset, price];
             else {
                 // convert price to target currency, at the given date
-                var currencyKey = asset_1.getCurrencyKey(assetCurrencies[asset], settings.currency);
+                var currencyKey = asset_1.getCurrencyKey(assetCurrencies[asset] + settings.currency);
                 var exchangeRate = histPrices[dateStr][currencyKey];
                 return [asset, price * exchangeRate];
             }
         });
+    });
+};
+// add historical values for the target currency, which will never change in value relative to itself
+exports.withTrivialHistCurrencyPrice = function (histPrices, currency) {
+    return utils_1.mapDict(histPrices, function (_, assetPrices) {
+        var _a;
+        return __assign(__assign({}, assetPrices), (_a = {}, _a[asset_1.getCurrencyKey(currency)] = 1, _a));
     });
 };
 
@@ -550,7 +597,7 @@ var getHistProp = function (propFn) { return function (transactionsByAsset, asse
         ];
     });
 }; };
-exports.getHistAssetQty = getHistProp(function (ts, date) { return transaction_1.getAssetQtyAt(ts, date); });
+exports.getHistQty = getHistProp(function (ts, date) { return transaction_1.getAssetQtyAt(ts, date); });
 exports.getHistAmountInvested = getHistProp(function (ts, date, startDate) {
     return transaction_1.getAmountInvested(ts, [startDate, date]);
 });

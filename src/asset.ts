@@ -10,8 +10,8 @@ export type HistAssetValues = {
     };
 };
 
-export const getCurrencyKey = (baseCurrency: string, targetCurrency: string) => {
-    return `CURRENCY:${baseCurrency}${targetCurrency}`;
+export const getCurrencyKey = (currency: string) => {
+    return 'CURRENCY:' + currency;
 };
 
 export const readAssetCurrencies = (assets: RArray<AssetKey>): Dict<AssetKey, string> => {

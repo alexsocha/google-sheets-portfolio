@@ -36,7 +36,7 @@ const getHistProp: (
     });
 };
 
-export const getHistAssetQty = getHistProp((ts, date) => getAssetQtyAt(ts, date));
+export const getHistQty = getHistProp((ts, date) => getAssetQtyAt(ts, date));
 export const getHistAmountInvested = getHistProp((ts, date, startDate) =>
     getAmountInvested(ts, [startDate, date])
 );
