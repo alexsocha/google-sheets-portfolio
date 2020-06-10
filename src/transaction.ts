@@ -58,14 +58,15 @@ export const withCurrencyTransactions = (
     });
 };
 
-export const getAssetQtyAt = (transactions: RArray<Transaction>, date: Date): number => {
+// get the quantity of an asset at the given date
+export const getAssetQty = (transactions: RArray<Transaction>, date: Date): number => {
     return transactions.reduce((acc, t) => {
         if (t.date.getTime() > date.getTime()) return acc;
         else return acc + (t.action === 'BUY' ? t.quantity : -t.quantity);
     }, 0);
 };
 
-// get the cumulative profit/loss of all transactions within a timeframe
+// get the cumulative profit/loss of all transactions within the timeframe
 export const getTransactionProfit = (
     transactions: RArray<Transaction>,
     [startDate, endDate]: [Date, Date]
@@ -120,7 +121,7 @@ export const getRelevantAssets = (
                 (t) =>
                     t.date.getTime() >= startDate.getTime() && t.date.getTime() <= endDate.getTime()
             );
-            return getAssetQtyAt(ts, startDate) > 0 || hasTransaction;
+            return getAssetQty(ts, startDate) > 0 || hasTransaction;
         })
         .map(([a]) => a);
 };

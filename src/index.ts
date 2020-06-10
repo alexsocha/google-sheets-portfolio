@@ -3,7 +3,7 @@ import {
     readTransactions,
     getTransactionsByAsset,
     getRelevantAssets,
-    getAssetQtyAt,
+    getAssetQty,
     Transaction,
     withCurrencyTransactions,
     getAmountInvested,
@@ -134,7 +134,7 @@ global.onOpen = onOpen;
 global.getAssetQty = (asset: AssetKey, date: Date) => {
     const transactions = getTransactions(getSettings());
     const transactionsByAsset = getTransactionsByAsset(transactions);
-    return getAssetQtyAt(transactionsByAsset[asset], justADate(date));
+    return getAssetQty(transactionsByAsset[asset], justADate(date));
 };
 
 global.getAmountInvested = (asset: AssetKey, date: Date) => {

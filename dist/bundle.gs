@@ -298,7 +298,8 @@ exports.withCurrencyTransactions = function (transactions, currency) {
             return [t];
     });
 };
-exports.getAssetQtyAt = function (transactions, date) {
+// get the quantity of an asset at the given date
+exports.getAssetQty = function (transactions, date) {
     return transactions.reduce(function (acc, t) {
         if (t.date.getTime() > date.getTime())
             return acc;
@@ -306,7 +307,7 @@ exports.getAssetQtyAt = function (transactions, date) {
             return acc + (t.action === 'BUY' ? t.quantity : -t.quantity);
     }, 0);
 };
-// get the cumulative profit/loss of all transactions within a timeframe
+// get the cumulative profit/loss of all transactions within the timeframe
 exports.getTransactionProfit = function (transactions, _a) {
     var startDate = _a[0], endDate = _a[1];
     return transactions.reduce(function (acc, t) {
@@ -347,7 +348,7 @@ exports.getRelevantAssets = function (transactionsByAsset, currency, _a) {
         var hasTransaction = ts.some(function (t) {
             return t.date.getTime() >= startDate.getTime() && t.date.getTime() <= endDate.getTime();
         });
-        return exports.getAssetQtyAt(ts, startDate) > 0 || hasTransaction;
+        return exports.getAssetQty(ts, startDate) > 0 || hasTransaction;
     })
         .map(function (_a) {
         var a = _a[0];
@@ -437,7 +438,7 @@ global.onOpen = onOpen;
 global.getAssetQty = function (asset, date) {
     var transactions = getTransactions(getSettings());
     var transactionsByAsset = transaction_1.getTransactionsByAsset(transactions);
-    return transaction_1.getAssetQtyAt(transactionsByAsset[asset], utils_1.justADate(date));
+    return transaction_1.getAssetQty(transactionsByAsset[asset], utils_1.justADate(date));
 };
 global.getAmountInvested = function (asset, date) {
     var settings = getSettings();
@@ -617,22 +618,21 @@ var getHistProp = function (propFn) { return function (transactionsByAsset, asse
     return utils_1.dictFromArray(dates, function (d) {
         return [
             utils_1.getDateStr(d),
-            utils_1.dictFromArray(assets, function (a) { return [a, propFn(transactionsByAsset[a], d, startDate)]; }),
+            utils_1.dictFromArray(assets, function (a) { return [a, propFn(transactionsByAsset[a], [startDate, d])]; }),
         ];
     });
 }; };
-exports.getHistQty = getHistProp(function (ts, date) { return transaction_1.getAssetQtyAt(ts, date); });
-exports.getHistAmountInvested = getHistProp(function (ts, date, startDate) {
-    return transaction_1.getAmountInvested(ts, [startDate, date]);
+exports.getHistQty = getHistProp(function (ts, _a) {
+    var _ = _a[0], endDate = _a[1];
+    return transaction_1.getAssetQty(ts, endDate);
 });
-exports.getHistTransactionProfit = getHistProp(function (ts, date, startDate) {
-    return transaction_1.getTransactionProfit(ts, [startDate, date]);
-});
+exports.getHistAmountInvested = getHistProp(transaction_1.getAmountInvested);
+exports.getHistTransactionProfit = getHistProp(transaction_1.getTransactionProfit);
 exports.getInitWorth = function (transactionsByAsset, prices, startDate) {
     // find the previous worth of each asset
     var dateBeforeStart = utils_1.justADate(startDate);
     dateBeforeStart.setUTCDate(startDate.getUTCDate() - 1);
-    return utils_1.mapDict(prices, function (asset, price) { return transaction_1.getAssetQtyAt(transactionsByAsset[asset], dateBeforeStart) * price; });
+    return utils_1.mapDict(prices, function (asset, price) { return transaction_1.getAssetQty(transactionsByAsset[asset], dateBeforeStart) * price; });
 };
 exports.getHistWorth = function (histPrices, histQty) {
     return utils_1.mapDict(histPrices, function (dateStr, prices) {

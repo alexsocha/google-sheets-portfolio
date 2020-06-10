@@ -1,5 +1,5 @@
 import {
-    getAssetQtyAt,
+    getAssetQty,
     TransactionsByAsset,
     Transaction,
     getAmountInvested,
@@ -17,7 +17,7 @@ import {
     Dict,
 } from './utils';
 
-type HistPropFn = (transactions: RArray<Transaction>, date: Date, startDate: Date) => number;
+type HistPropFn = (transactions: RArray<Transaction>, [startDate, endDate]: [Date, Date]) => number;
 
 const getHistProp: (
     propFn: HistPropFn
@@ -31,18 +31,14 @@ const getHistProp: (
     return dictFromArray(dates, (d) => {
         return [
             getDateStr(d),
-            dictFromArray(assets, (a) => [a, propFn(transactionsByAsset[a], d, startDate)]),
+            dictFromArray(assets, (a) => [a, propFn(transactionsByAsset[a], [startDate, d])]),
         ];
     });
 };
 
-export const getHistQty = getHistProp((ts, date) => getAssetQtyAt(ts, date));
-export const getHistAmountInvested = getHistProp((ts, date, startDate) =>
-    getAmountInvested(ts, [startDate, date])
-);
-export const getHistTransactionProfit = getHistProp((ts, date, startDate) =>
-    getTransactionProfit(ts, [startDate, date])
-);
+export const getHistQty = getHistProp((ts, [_, endDate]) => getAssetQty(ts, endDate));
+export const getHistAmountInvested = getHistProp(getAmountInvested);
+export const getHistTransactionProfit = getHistProp(getTransactionProfit);
 
 export const getInitWorth = (
     transactionsByAsset: TransactionsByAsset,
@@ -55,7 +51,7 @@ export const getInitWorth = (
 
     return mapDict(
         prices,
-        (asset, price) => getAssetQtyAt(transactionsByAsset[asset], dateBeforeStart) * price
+        (asset, price) => getAssetQty(transactionsByAsset[asset], dateBeforeStart) * price
     );
 };
 
