@@ -1,4 +1,4 @@
-import { AssetKey, getCurrencyKey } from './asset';
+import { AssetKey, getCurrencyKey, TotalFn } from './asset';
 import { RArray, Dict, justADate } from './utils';
 
 export interface Transaction {
@@ -58,7 +58,7 @@ export const withCurrencyTransactions = (
     });
 };
 
-export const getAssetQtyAt = (transactions: RArray<Transaction>, date: Date) => {
+export const getAssetQtyAt = (transactions: RArray<Transaction>, date: Date): number => {
     return transactions.reduce((acc, t) => {
         if (t.date.getTime() > date.getTime()) return acc;
         else return acc + (t.action === 'BUY' ? t.quantity : -t.quantity);
@@ -69,7 +69,7 @@ export const getAssetQtyAt = (transactions: RArray<Transaction>, date: Date) => 
 export const getTransactionProfit = (
     transactions: RArray<Transaction>,
     [startDate, endDate]: [Date, Date]
-) => {
+): number => {
     return transactions.reduce((acc, t) => {
         if (t.date.getTime() < startDate.getTime() || t.date.getTime() > endDate.getTime())
             return acc;
@@ -82,7 +82,7 @@ export const getTransactionProfit = (
 export const getAmountInvested = (
     transactions: RArray<Transaction>,
     [startDate, endDate]: [Date, Date]
-) => {
+): number => {
     return transactions.reduce(
         ([maxInvested, accountDebit], t) => {
             if (t.date.getTime() < startDate.getTime() || t.date.getTime() > endDate.getTime())
@@ -95,6 +95,14 @@ export const getAmountInvested = (
         },
         [0, 0]
     )[0];
+};
+
+// get the total amount invested, simply defined as the amount
+// 'invested' into the target currency
+export const getTotalAmountInvested: (targetCurrency: string) => TotalFn = (targetCurrency) => (
+    assetValues
+) => {
+    return assetValues[getCurrencyKey(targetCurrency)];
 };
 
 // get a list of assets owned on or after the start date

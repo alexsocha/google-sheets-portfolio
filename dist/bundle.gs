@@ -208,14 +208,16 @@ exports.readAssetCurrencies = function (assets) {
         return __assign(__assign({}, acc), (_a = {}, _a[asset] = sheetValues[i][0], _a));
     }, {});
 };
-exports.withTotal = function (assetValues) {
+var basicTotal = function (assetValues) { return Object.values(assetValues).reduce(function (acc, v) { return acc + v; }); };
+exports.withTotal = function (assetValues, totalFn) {
     var _a;
-    var total = Object.values(assetValues).reduce(function (acc, v) { return acc + v; });
-    return __assign(__assign({}, assetValues), (_a = {}, _a[exports.TOTAL] = total, _a));
+    if (totalFn === void 0) { totalFn = basicTotal; }
+    return __assign(__assign({}, assetValues), (_a = {}, _a[exports.TOTAL] = totalFn(assetValues), _a));
 };
-exports.withHistTotal = function (histValues) {
+exports.withHistTotal = function (histValues, totalFn) {
+    if (totalFn === void 0) { totalFn = basicTotal; }
     return utils_1.mapDict(histValues, function (asset, assetValues) {
-        return exports.withTotal(assetValues);
+        return exports.withTotal(assetValues, totalFn);
     });
 };
 exports.writeHistAssetValues = function (assets, histValues, sheetName) {
@@ -326,6 +328,11 @@ exports.getAmountInvested = function (transactions, _a) {
         }
     }, [0, 0])[0];
 };
+// get the total amount invested, simply defined as the amount
+// 'invested' into the target currency
+exports.getTotalAmountInvested = function (targetCurrency) { return function (assetValues) {
+    return assetValues[asset_1.getCurrencyKey(targetCurrency)];
+}; };
 // get a list of assets owned on or after the start date
 exports.getRelevantAssets = function (transactionsByAsset, currency, _a) {
     var startDate = _a[0], endDate = _a[1];
@@ -410,7 +417,7 @@ var loadData = function () {
     var histWorthWithTotal = asset_1.withHistTotal(histWorth);
     var histProfit = portfolio_1.getHistProfit(initWorth, histWorth, histTransactionProfit);
     var histProfitWithTotal = asset_1.withHistTotal(histProfit);
-    var histProfitPercentWithTotal = portfolio_1.getHistProfitPercent(asset_1.withTotal(initWorth), asset_1.withHistTotal(histAmountInvested), histProfitWithTotal);
+    var histProfitPercentWithTotal = portfolio_1.getHistProfitPercent(asset_1.withTotal(initWorth), asset_1.withHistTotal(histAmountInvested, transaction_1.getTotalAmountInvested(settings.currency)), histProfitWithTotal);
     // write historical data
     var assetsWithTotal = [asset_1.TOTAL].concat(assets);
     asset_1.writeHistAssetValues(assetsWithTotal, histWorthWithTotal, 'Hist Worth');
@@ -506,7 +513,9 @@ var writeHistPriceFormulas = function (assets, settings) {
     SpreadsheetApp.flush();
     // append current prices at the end of each column
     if (settings.endDate.getTime() === utils_1.justADate(new Date()).getTime()) {
-        var sheetValues_1 = sheet.getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2).getValues();
+        var sheetValues_1 = sheet
+            .getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2)
+            .getValues();
         assetMods.forEach(function (assetMod, i) {
             var lastRow = sheetValues_1.findIndex(function (row) { return row[i * 2] === ''; }) - 1;
             var lastDate = utils_1.justADate(sheetValues_1[lastRow][i * 2]);

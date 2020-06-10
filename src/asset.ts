@@ -30,14 +30,20 @@ export const readAssetCurrencies = (assets: RArray<AssetKey>): Dict<AssetKey, st
     }, {});
 };
 
-export const withTotal = (assetValues: Dict<AssetKey, number>): Dict<AssetKey, number> => {
-    const total = Object.values(assetValues).reduce((acc, v) => acc + v);
-    return { ...assetValues, [TOTAL]: total };
+export type TotalFn = (assetValues: Dict<AssetKey, number>) => number;
+
+const basicTotal: TotalFn = (assetValues) => Object.values(assetValues).reduce((acc, v) => acc + v);
+
+export const withTotal = (assetValues: Dict<AssetKey, number>, totalFn = basicTotal) => {
+    return { ...assetValues, [TOTAL]: totalFn(assetValues) };
 };
 
-export const withHistTotal = (histValues: HistAssetValues): HistAssetValues => {
+export const withHistTotal = (
+    histValues: HistAssetValues,
+    totalFn: TotalFn = basicTotal
+): HistAssetValues => {
     return mapDict(histValues, (asset, assetValues) => {
-        return withTotal(assetValues);
+        return withTotal(assetValues, totalFn);
     });
 };
 

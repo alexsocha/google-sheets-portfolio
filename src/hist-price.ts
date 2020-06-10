@@ -53,7 +53,9 @@ const writeHistPriceFormulas = (assets: RArray<AssetKey>, settings: Settings) =>
 
     // append current prices at the end of each column
     if (settings.endDate.getTime() === justADate(new Date()).getTime()) {
-        const sheetValues = sheet.getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2).getValues();
+        const sheetValues = sheet
+            .getRange(2, 1, sheet.getLastRow() + 1, assets.length * 2)
+            .getValues();
 
         assetMods.forEach((assetMod, i) => {
             const lastRow = sheetValues.findIndex((row) => row[i * 2] === '') - 1;

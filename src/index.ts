@@ -6,6 +6,7 @@ import {
     getAssetQtyAt,
     Transaction,
     withCurrencyTransactions,
+    getTotalAmountInvested,
 } from './transaction';
 import {
     readAssetCurrencies,
@@ -106,7 +107,7 @@ const loadData = () => {
 
     const histProfitPercentWithTotal = getHistProfitPercent(
         withTotal(initWorth),
-        withHistTotal(histAmountInvested),
+        withHistTotal(histAmountInvested, getTotalAmountInvested(settings.currency)),
         histProfitWithTotal
     );
 
