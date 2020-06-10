@@ -131,7 +131,7 @@ global.onOpen = onOpen;
 
 // === utilities ===
 
-global.getAssetQtyAt = (asset: AssetKey, date: Date) => {
+global.getAssetQty = (asset: AssetKey, date: Date) => {
     const transactions = getTransactions(getSettings());
     const transactionsByAsset = getTransactionsByAsset(transactions);
     return getAssetQtyAt(transactionsByAsset[asset], justADate(date));

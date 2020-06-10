@@ -3,7 +3,7 @@ function loadData() {
 function onOpen() {
 }
 // === utilities ===
-function getAssetQtyAt(asset, date) {
+function getAssetQty(asset, date) {
 }
 function getAmountInvested(asset, date) {
 }/******/ (function(modules) { // webpackBootstrap
@@ -434,7 +434,7 @@ var onOpen = function () {
 global.loadData = loadData;
 global.onOpen = onOpen;
 // === utilities ===
-global.getAssetQtyAt = function (asset, date) {
+global.getAssetQty = function (asset, date) {
     var transactions = getTransactions(getSettings());
     var transactionsByAsset = transaction_1.getTransactionsByAsset(transactions);
     return transaction_1.getAssetQtyAt(transactionsByAsset[asset], utils_1.justADate(date));
