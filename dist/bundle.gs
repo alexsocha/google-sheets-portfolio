@@ -2,8 +2,10 @@ function loadData() {
 }
 function onOpen() {
 }
-// utilities
+// === utilities ===
 function getAssetQtyAt(asset, date) {
+}
+function getAmountInvested(asset, date) {
 }/******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
@@ -431,10 +433,21 @@ var onOpen = function () {
 };
 global.loadData = loadData;
 global.onOpen = onOpen;
-// utilities
+// === utilities ===
 global.getAssetQtyAt = function (asset, date) {
     var transactions = getTransactions(getSettings());
-    return transaction_1.getAssetQtyAt(transactions.filter(function (t) { return t.asset === asset; }), date);
+    var transactionsByAsset = transaction_1.getTransactionsByAsset(transactions);
+    return transaction_1.getAssetQtyAt(transactionsByAsset[asset], utils_1.justADate(date));
+};
+global.getAmountInvested = function (asset, date) {
+    var settings = getSettings();
+    var transactions = getTransactions(getSettings());
+    var transactionsByAsset = transaction_1.getTransactionsByAsset(transactions);
+    var amountInvested = utils_1.mapDict(transactionsByAsset, function (_, ts) {
+        return transaction_1.getAmountInvested(ts, [settings.startDate, utils_1.justADate(date)]);
+    });
+    var amountInvestedWithTotal = asset_1.withTotal(amountInvested, transaction_1.getTotalAmountInvested(settings.currency));
+    return amountInvestedWithTotal[asset];
 };
 
 /* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(4)))

@@ -6,6 +6,7 @@ import {
     getAssetQtyAt,
     Transaction,
     withCurrencyTransactions,
+    getAmountInvested,
     getTotalAmountInvested,
 } from './transaction';
 import {
@@ -30,11 +31,12 @@ import { readSettings, Settings } from './settings';
 import {
     RArray,
     filterDict,
-    justADate,
     sorted,
     getDateStr,
     getOrCreateSheet,
     dictFromArray,
+    mapDict,
+    justADate,
 } from './utils';
 
 declare let global: any;
@@ -127,11 +129,26 @@ const onOpen = () => {
 global.loadData = loadData;
 global.onOpen = onOpen;
 
-// utilities
+// === utilities ===
+
 global.getAssetQtyAt = (asset: AssetKey, date: Date) => {
     const transactions = getTransactions(getSettings());
-    return getAssetQtyAt(
-        transactions.filter((t) => t.asset === asset),
-        date
+    const transactionsByAsset = getTransactionsByAsset(transactions);
+    return getAssetQtyAt(transactionsByAsset[asset], justADate(date));
+};
+
+global.getAmountInvested = (asset: AssetKey, date: Date) => {
+    const settings = getSettings();
+    const transactions = getTransactions(getSettings());
+    const transactionsByAsset = getTransactionsByAsset(transactions);
+
+    const amountInvested = mapDict(transactionsByAsset, (_, ts) =>
+        getAmountInvested(ts, [settings.startDate, justADate(date)])
     );
+    const amountInvestedWithTotal = withTotal(
+        amountInvested,
+        getTotalAmountInvested(settings.currency)
+    );
+
+    return amountInvestedWithTotal[asset];
 };
