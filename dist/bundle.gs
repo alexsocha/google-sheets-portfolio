@@ -206,8 +206,13 @@ exports.readAssetCurrencies = function (assets) {
     SpreadsheetApp.flush();
     var sheetValues = sheet.getRange(1, 1, assets.length, 1).getValues();
     return assets.reduce(function (acc, asset, i) {
-        var _a;
-        return __assign(__assign({}, acc), (_a = {}, _a[asset] = sheetValues[i][0], _a));
+        var _a, _b;
+        var currency = String(sheetValues[i][0]);
+        if (currency === '#N/A') {
+            console.error("No currency data for asset '" + asset + "', assuming USD");
+            return __assign(__assign({}, acc), (_a = {}, _a[asset] = 'USD', _a));
+        }
+        return __assign(__assign({}, acc), (_b = {}, _b[asset] = sheetValues[i][0], _b));
     }, {});
 };
 var basicTotal = function (assetValues) { return Object.values(assetValues).reduce(function (acc, v) { return acc + v; }); };
@@ -532,6 +537,10 @@ var writeHistPriceFormulas = function (assets, settings) {
             .getValues();
         assetMods.forEach(function (assetMod, i) {
             var lastRow = sheetValues_1.findIndex(function (row) { return row[i * 2] === ''; }) - 1;
+            if (lastRow === -1) {
+                console.error("No GOOGLEFINANCE data for asset '" + assetMod.code + "'");
+                return;
+            }
             var lastDate = utils_1.justADate(sheetValues_1[lastRow][i * 2]);
             if (lastDate.getTime() !== settings.endDate.getTime()) {
                 sheet.getRange(lastRow + 3, i * 2 + 1).setValue(settings.endDate);
@@ -575,7 +584,7 @@ var readHistPrices = function (assets, settings) {
 // read the historical prices, converted the given currency
 exports.readHistPricesInCurrency = function (assets, assetCurrencies, settings) {
     var currencies = utils_1.filterUnique(Object.values(assetCurrencies));
-    // currency conversion asset keys, relative to the target currency
+    // create currency conversion asset keys, relative to the target currency
     var currencyKeys = currencies
         .filter(function (c) { return c !== settings.currency; })
         .map(function (c) { return asset_1.getCurrencyKey(c + settings.currency); });

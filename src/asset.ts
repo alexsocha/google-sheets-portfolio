@@ -26,6 +26,11 @@ export const readAssetCurrencies = (assets: RArray<AssetKey>): Dict<AssetKey, st
 
     const sheetValues = sheet.getRange(1, 1, assets.length, 1).getValues();
     return assets.reduce((acc, asset, i) => {
+        const currency = String(sheetValues[i][0]);
+        if (currency === '#N/A') {
+            console.error(`No currency data for asset '${asset}', assuming USD`);
+            return { ...acc, [asset]: 'USD' };
+        }
         return { ...acc, [asset]: sheetValues[i][0] };
     }, {});
 };

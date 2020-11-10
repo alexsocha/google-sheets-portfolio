@@ -59,6 +59,11 @@ const writeHistPriceFormulas = (assets: RArray<AssetKey>, settings: Settings) =>
 
         assetMods.forEach((assetMod, i) => {
             const lastRow = sheetValues.findIndex((row) => row[i * 2] === '') - 1;
+            if (lastRow === -1) {
+                console.error(`No GOOGLEFINANCE data for asset '${assetMod.code}'`);
+                return;
+            }
+
             const lastDate = justADate(sheetValues[lastRow][i * 2]);
 
             if (lastDate.getTime() !== settings.endDate.getTime()) {
@@ -117,7 +122,8 @@ export const readHistPricesInCurrency = (
     settings: Settings
 ): HistAssetValues => {
     const currencies = filterUnique(Object.values(assetCurrencies));
-    // currency conversion asset keys, relative to the target currency
+
+    // create currency conversion asset keys, relative to the target currency
     const currencyKeys = currencies
         .filter((c) => c !== settings.currency)
         .map((c) => getCurrencyKey(c + settings.currency));
