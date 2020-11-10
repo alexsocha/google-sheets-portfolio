@@ -25,19 +25,16 @@
 
 ### Developer setup
 
-After cloning the repo run
-```
-npm install
-```
+After cloning the repo run `npm install`.
 
-Build build the bundle with
+- Build the bundle: `npm run build`
+- Build continuously: `npm run watch`
+
+For a better development experience use [clasp](https://github.com/google/clasp) with
+`dist` as the `rootDir`. Once configured, you can run the app as follows:
+
 ```
 npm run build
+clasp push
+clasp run loadData
 ```
-
-or build continuously with
-```
-npm run watch
-```
-
-For a better development experience use [clasp](https://github.com/google/clasp) with `dist` as the `rootDir`.
